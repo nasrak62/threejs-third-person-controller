@@ -7,54 +7,94 @@ import {
   createLine,
   createText,
 } from "./utils";
-import PlayerCamera from "../PlayerCamera";
 import Player from "../Player";
-import PlayerController from "../PlayerController";
+import { TRapier } from "../Rapier/types";
+import { World as PhysicsWorld } from "@dimforge/rapier3d";
+import RenderedObject from "../RenderedObject";
 
 export default class World {
   game: Game;
-  playerCamera: PlayerCamera;
   line: THREE.Line<
     THREE.BufferGeometry<THREE.NormalBufferAttributes>,
     THREE.LineBasicMaterial,
     THREE.Object3DEventMap
   >;
   player: Player;
-  floor: THREE.Mesh<
-    THREE.PlaneGeometry,
-    THREE.MeshBasicMaterial,
-    THREE.Object3DEventMap
-  >;
   enemie: THREE.Group<THREE.Object3DEventMap>;
   lookAtObject: THREE.Group<THREE.Object3DEventMap>;
-  front: THREE.Group<THREE.Object3DEventMap>;
-  playerController: PlayerController;
+  RAPIER: TRapier | null;
+  physicsWorld: PhysicsWorld | null;
+  floor: RenderedObject<
+    THREE.Mesh<
+      THREE.BoxGeometry,
+      THREE.MeshBasicMaterial,
+      THREE.Object3DEventMap
+    >
+  >;
+  frontObject: RenderedObject<THREE.Group<THREE.Object3DEventMap>>;
+  leftObject: RenderedObject<THREE.Group<THREE.Object3DEventMap>>;
+  rightObject: RenderedObject<THREE.Group<THREE.Object3DEventMap>>;
+  backObject: RenderedObject<THREE.Group<THREE.Object3DEventMap>>;
 
   constructor() {
     this.game = new Game();
-    this.player = new Player();
+    this.RAPIER = this.game.RAPIER;
+    this.physicsWorld = this.game.physicsWorld;
+    const scene = this.game.scene;
 
-    console.log(this.game);
+    this.player = new Player();
 
     const light = new THREE.AmbientLight(0x404040, 1.0); // soft white light
     this.game.scene.add(light);
-    this.playerCamera = new PlayerCamera();
-    this.playerController = new PlayerController();
 
     this.line = createLine();
     this.game.scene.add(this.line);
 
-    this.floor = createFloor();
-
-    this.game.scene.add(this.floor);
+    this.floor = createFloor(this.RAPIER, this.physicsWorld, scene);
 
     this.enemie = createCube(this.getTextFunction(), "enemie", 0x0000ff);
 
     this.game.scene.add(this.enemie);
 
-    this.front = createFront(this.getTextFunction(), "front", 0xff00ff);
+    this.frontObject = createFront(
+      this.getTextFunction(),
+      "front",
+      0xff00ff,
+      this.RAPIER,
+      this.physicsWorld,
+      scene,
+      new THREE.Vector3(0, 0, -55),
+    );
 
-    this.game.scene.add(this.front);
+    this.backObject = createFront(
+      this.getTextFunction(),
+      "back",
+      0x0000ff,
+      this.RAPIER,
+      this.physicsWorld,
+      scene,
+      new THREE.Vector3(0, 0, 55),
+    );
+
+    this.rightObject = createFront(
+      this.getTextFunction(),
+      "right",
+      0x00ffff,
+      this.RAPIER,
+      this.physicsWorld,
+      scene,
+      new THREE.Vector3(55, 0, 0),
+    );
+
+    this.leftObject = createFront(
+      this.getTextFunction(),
+      "left",
+      0xffff00,
+      this.RAPIER,
+      this.physicsWorld,
+      scene,
+      new THREE.Vector3(-55, 0, 0),
+    );
 
     this.lookAtObject = createCube(this.getTextFunction(), "look at", 0xaa4ac3);
 
@@ -66,6 +106,18 @@ export default class World {
   }
 
   animate() {
+    if (this.physicsWorld) {
+      this.physicsWorld.timestep = Math.min(this.game.deltaTime, 0.1);
+      this.physicsWorld.step();
+    }
+
+    this.frontObject.animate();
+    this.backObject.animate();
+    this.leftObject.animate();
+    this.rightObject.animate();
+    this.floor.animate();
+    this.player.animate();
+
     const points = this.line.geometry.attributes.position.array;
     const direction = this.player.getFrontDirection();
 
@@ -75,10 +127,8 @@ export default class World {
 
     this.line.geometry.attributes.position.needsUpdate = true;
 
-    if (this.playerCamera.lookAt) {
-      this.lookAtObject.position.copy(this.playerCamera.lookAt);
+    if (this.player.playerCamera.lookAt) {
+      this.lookAtObject.position.copy(this.player.playerCamera.lookAt);
     }
-    this.playerCamera.animate();
-    this.playerController.animate();
   }
 }

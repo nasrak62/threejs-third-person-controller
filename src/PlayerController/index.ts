@@ -1,5 +1,9 @@
 import Game from "../Game";
+import * as THREE from "three";
 import { rotateVector } from "./utils";
+import Player from "../Player";
+import { ABSOLUTE_UP_VECTOR } from "../PlayerCamera/utils";
+import { getVectorString } from "../utils/vector";
 
 export default class PlayerController {
   game: Game;
@@ -9,6 +13,8 @@ export default class PlayerController {
   keyA: boolean;
   shift: boolean;
   space: boolean;
+  baseSpeed: number;
+  baseJumpSpeed: number;
 
   constructor() {
     this.game = new Game();
@@ -18,6 +24,8 @@ export default class PlayerController {
     this.keyA = false;
     this.shift = false;
     this.space = false;
+    this.baseSpeed = 200;
+    this.baseJumpSpeed = 200;
 
     window.addEventListener("keydown", this.handleKeyDown.bind(this));
     window.addEventListener("keyup", this.handleKeyUp.bind(this));
@@ -75,38 +83,75 @@ export default class PlayerController {
     }
   }
 
-  animate() {
-    const player = this.game.getPlayer();
+  calculateSpeed(player: Player) {
+    const mass = player.body.body?.mass() || 1;
+    const gameCoefficient = this.game.deltaTime * mass;
+    let speed = gameCoefficient * this.baseSpeed;
+    let jumpSpeed = gameCoefficient * this.baseJumpSpeed;
+
+    if (this.shift) {
+      speed *= 3;
+      jumpSpeed *= 3;
+    }
+
+    return [speed, jumpSpeed];
+  }
+
+  getMovementVectors(player: Player) {
+    const [speed, jumpSpeed] = this.calculateSpeed(player);
     const forwardDirection = player.getFrontDirection();
     const backwardDirection = player.getBackDirection();
     const rightDirection = rotateVector(forwardDirection, Math.PI / 2);
     const leftDirection = rotateVector(forwardDirection, (3 * Math.PI) / 2);
-    const speed = this.game.deltaTime * 20;
+    const keyS = backwardDirection.multiplyScalar(speed);
+    const keyW = forwardDirection.multiplyScalar(speed);
+    const space = ABSOLUTE_UP_VECTOR.clone().multiplyScalar(jumpSpeed);
+    const keyA = leftDirection.multiplyScalar(speed);
+    const keyD = rightDirection.multiplyScalar(speed);
+
+    return {
+      keyS,
+      keyW,
+      space,
+      keyA,
+      keyD,
+    };
+  }
+
+  animate() {
+    const player = this.game.getPlayer();
+
+    const movementValues = this.getMovementVectors(player);
+    let movementValue = new THREE.Vector3();
+    const originalVelocity = player.body.body?.linvel();
+    let effectiveVelocity = originalVelocity || new THREE.Vector3();
+
+    if (this.space) {
+      movementValue = movementValue.add(movementValues.space);
+    }
 
     if (this.keyS) {
-      const value = backwardDirection.multiplyScalar(speed);
-
-      player.model.position.add(value);
+      movementValue = movementValue.add(movementValues.keyS);
     }
 
     if (this.keyW) {
-      const value = forwardDirection.multiplyScalar(speed);
-
-      player.model.position.add(value);
+      movementValue = movementValue.add(movementValues.keyW);
     }
 
     if (this.keyA) {
-      const value = leftDirection.multiplyScalar(speed);
-
-      player.model.position.add(value);
+      movementValue = movementValue.add(movementValues.keyA);
     }
 
     if (this.keyD) {
-      const value = rightDirection.multiplyScalar(speed);
-
-      player.model.position.add(value);
+      movementValue = movementValue.add(movementValues.keyD);
     }
 
-    this.game.world.playerCamera.initLookAt({ player });
+    if (movementValue.x || movementValue.y || movementValue.z) {
+      effectiveVelocity = movementValue;
+    }
+
+    player.body.body?.setLinvel(effectiveVelocity, true);
+
+    this.game.world.player.playerCamera.initLookAt({ player });
   }
 }

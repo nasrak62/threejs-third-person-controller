@@ -3,6 +3,9 @@ import { Font, FontLoader } from "three/addons/loaders/FontLoader.js";
 import { handlePointerLock, initRenderer, initSizes } from "./utils";
 import { TSizes } from "./types";
 import World from "../World";
+import { TRapier } from "../Rapier/types";
+import { getPhysicsWorld } from "../Rapier/utils";
+import { World as PhysicsWorld } from "@dimforge/rapier3d";
 
 let instance: Game | null = null;
 
@@ -18,6 +21,8 @@ export default class Game {
   hasLock!: boolean;
   fontLoader!: FontLoader;
   font!: Font;
+  RAPIER!: TRapier | null;
+  physicsWorld!: PhysicsWorld | null;
 
   constructor() {
     if (instance) {
@@ -89,6 +94,7 @@ export default class Game {
   }
 
   init() {
+    this.physicsWorld = getPhysicsWorld(this.RAPIER);
     this.world = new World();
   }
 

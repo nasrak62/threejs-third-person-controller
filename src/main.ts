@@ -1,11 +1,15 @@
 import * as THREE from "three";
 import Game from "./Game";
 import "./style.css";
+import { initRapier } from "./Rapier";
 
 const start = async () => {
   const game = new Game();
 
   game.font = await game.loadFonts();
+  game.RAPIER = await initRapier();
+
+  console.log({ RAPIER: game.RAPIER });
 
   game.init();
 

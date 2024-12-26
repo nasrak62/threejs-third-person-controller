@@ -1,8 +1,11 @@
+import { Vector } from "@dimforge/rapier3d";
 import * as THREE from "three";
+import Player from "../Player";
 
 const BASE_DISTANCE = 10;
 export const ABSOLUTE_FORWARD_VECTOR = new THREE.Vector3(0, 0, -1);
 export const ABSOLUTE_RIGHT_VECTOR = new THREE.Vector3(1, 0, 0);
+export const ABSOLUTE_UP_VECTOR = new THREE.Vector3(0, 1, 0);
 const CAMERA_HEIGHT_OFFSET = 5;
 const LOOK_AT_MIN = -15;
 const LOOK_AT_MAX = 60;
@@ -12,13 +15,17 @@ export const CAMERA_INITAL_VALUES = {
 };
 
 export const getAngleFromAbsoluteForward = (vector: THREE.Vector3) => {
-  return vector.angleTo(ABSOLUTE_FORWARD_VECTOR);
+  return vector.angleTo(ABSOLUTE_FORWARD_VECTOR.clone());
 };
 
 export const calculateCameraNewPosition = (
   angle: number,
-  playerPosition: THREE.Vector3,
+  playerPosition?: THREE.Vector3 | Vector,
 ) => {
+  if (!playerPosition) {
+    return new THREE.Vector3();
+  }
+
   const radius = CAMERA_INITAL_VALUES.length;
 
   const x = radius * Math.cos(angle);
@@ -49,4 +56,25 @@ export const getLookAtPosition = (
   );
 
   return lookAtPosition;
+};
+
+export const getPlayerPhysicsQuaternion = (
+  player: Player,
+): THREE.Quaternion => {
+  const physicsQuaternion = player.body.body?.rotation();
+
+  const currentQuaternion = new THREE.Quaternion(
+    physicsQuaternion?.x,
+    physicsQuaternion?.y,
+    physicsQuaternion?.z,
+    physicsQuaternion?.w,
+  );
+
+  return currentQuaternion;
+};
+
+export const getPlayerMeshQuaternion = (player: Player): THREE.Quaternion => {
+  const currentQuaternion = player.body.mesh?.quaternion;
+
+  return currentQuaternion;
 };

@@ -2,8 +2,15 @@ import * as THREE from "three";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 import { Font } from "three/examples/jsm/Addons.js";
 import { TGetTextFunc } from "./types";
+import { TRapier } from "../Rapier/types";
+import { World as PhysicsWorld } from "@dimforge/rapier3d";
+import RenderedObject from "../RenderedObject";
 
-export const createPlayer = () => {
+export const createPlayer = (
+  RAPIER: TRapier | null,
+  world: PhysicsWorld | null,
+  scene: THREE.Scene,
+) => {
   const group = new THREE.Group();
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -19,14 +26,63 @@ export const createPlayer = () => {
   group.children[1].position.set(0, 1, 0);
   group.children[2].position.set(0, 1, -1);
 
-  return group;
+  const spherePoints = [] as THREE.Vector3[];
+  let points = [] as unknown as Float32Array;
+
+  for (const children of group.children) {
+    const positions = (children as THREE.Mesh).geometry.attributes.position
+      .array;
+
+    points = [...new Float32Array(positions)] as unknown as Float32Array;
+    const count = positions.length;
+
+    for (let index = 0; index < count; index += 3) {
+      const x = positions[index + 0];
+      const y = positions[index + 1];
+      const z = positions[index + 2];
+
+      spherePoints.push(new THREE.Vector3(x, y, z));
+    }
+  }
+
+  const sphere = new THREE.Sphere().setFromPoints(spherePoints);
+
+  const renderedObject = new RenderedObject({ mesh: group });
+
+  if (world && RAPIER) {
+    renderedObject.body = world.createRigidBody(
+      RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(0, 0, 0)
+        .setCanSleep(false)
+        .lockRotations(),
+    );
+
+    let shape = RAPIER.ColliderDesc.convexHull(points)?.setMass(5) || null;
+
+    if (!shape) {
+      shape = RAPIER.ColliderDesc.capsule(sphere.radius, sphere.radius).setMass(
+        5,
+      );
+    }
+
+    renderedObject.shape = shape;
+
+    renderedObject.collider = world.createCollider(
+      renderedObject.shape,
+      renderedObject.body,
+    );
+  }
+
+  scene.add(group);
+
+  return renderedObject;
 };
 
 export const createText = (font: Font) => (text: string) => {
   const geometry = new TextGeometry(text, {
     font: font,
     size: 0.5,
-    height: 0.2,
+    depth: 0.2,
     curveSegments: 12,
     bevelEnabled: false,
     bevelThickness: 0.5,
@@ -70,9 +126,15 @@ export const createFront = (
   textFunc: TGetTextFunc,
   textName: string,
   color: string | number,
+  RAPIER: TRapier | null,
+  world: PhysicsWorld | null,
+  scene: THREE.Scene,
+  basePosition: THREE.Vector3,
 ) => {
+  const size = 20;
+  const halfSize = size * 0.5;
   const group = new THREE.Group();
-  const geometry = new THREE.BoxGeometry(20, 20, 20);
+  const geometry = new THREE.BoxGeometry(size, size, size);
   const material = new THREE.MeshBasicMaterial({ color });
   const enemie = new THREE.Mesh(geometry, material);
   const text = textFunc(textName);
@@ -81,9 +143,31 @@ export const createFront = (
   group.add(text);
 
   group.children[1].position.set(-1, 1, 0);
-  group.position.set(0, 0, -55);
 
-  return group;
+  const renderedObject = new RenderedObject({ mesh: group });
+
+  if (world && RAPIER) {
+    renderedObject.body = world.createRigidBody(
+      RAPIER.RigidBodyDesc.dynamic()
+        .setTranslation(basePosition.x, basePosition.y, basePosition.z)
+        .setCanSleep(false),
+    );
+
+    renderedObject.shape = RAPIER.ColliderDesc.cuboid(
+      halfSize,
+      halfSize,
+      halfSize,
+    ).setMass(1);
+
+    renderedObject.collider = world.createCollider(
+      renderedObject.shape,
+      renderedObject.body,
+    );
+  }
+
+  scene.add(group);
+
+  return renderedObject;
 };
 
 export const createLine = () => {
@@ -100,18 +184,43 @@ export const createLine = () => {
   return line;
 };
 
-export const createFloor = () => {
-  const geometry = new THREE.PlaneGeometry(2000, 2000, 8, 8);
+export const createFloor = (
+  RAPIER: TRapier | null,
+  world: PhysicsWorld | null,
+  scene: THREE.Scene,
+) => {
+  const floorWidth = 1000.0;
+  const geometry = new THREE.BoxGeometry(floorWidth, 1, floorWidth);
 
   const material = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
   });
 
-  const plane = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, material);
 
-  plane.position.y = -1;
-  plane.rotateX(-Math.PI / 2);
+  mesh.position.y = -1;
 
-  return plane;
+  const renderedObject = new RenderedObject({ mesh });
+
+  if (RAPIER && world) {
+    renderedObject.shape = RAPIER.ColliderDesc.cuboid(
+      floorWidth * 0.5,
+      1,
+      floorWidth * 0.5,
+    ).setFriction(5);
+
+    renderedObject.body = world.createRigidBody(
+      RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0),
+    );
+
+    renderedObject.collider = world.createCollider(
+      renderedObject.shape,
+      renderedObject.body,
+    );
+  }
+
+  scene.add(mesh);
+
+  return renderedObject;
 };

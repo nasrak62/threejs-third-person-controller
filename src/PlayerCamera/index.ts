@@ -2,12 +2,16 @@ import * as THREE from "three";
 import Game from "../Game";
 import {
   ABSOLUTE_RIGHT_VECTOR,
+  ABSOLUTE_UP_VECTOR,
   calculateCameraNewPosition,
   CAMERA_INITAL_VALUES,
   getAngleFromAbsoluteForward,
   getLookAtPosition,
+  getPlayerMeshQuaternion,
+  getPlayerPhysicsQuaternion,
 } from "./utils";
 import Player from "../Player";
+import { getQuaternionString, getVectorString } from "../utils/vector";
 
 export default class PlayerCamera {
   game: Game;
@@ -16,7 +20,7 @@ export default class PlayerCamera {
 
   constructor() {
     this.game = new Game();
-    this.movementFactorHorizontal = 0.1;
+    this.movementFactorHorizontal = 0.1 * 0.7;
     this.lookAt = null;
 
     window.addEventListener("mousemove", this.handleMouseMove.bind(this));
@@ -27,11 +31,23 @@ export default class PlayerCamera {
 
     const movementX = event.movementX;
     const movementY = event.movementY;
+
     const yValue =
       movementX * this.game.deltaTime * this.movementFactorHorizontal;
+
     const xValue = movementY * this.game.deltaTime * 1;
 
-    player.model.rotation.y -= yValue;
+    const yQuaternion = new THREE.Quaternion().setFromAxisAngle(
+      ABSOLUTE_UP_VECTOR.clone(),
+      -yValue,
+    );
+
+    const updatedQuaternion =
+      getPlayerPhysicsQuaternion(player).multiply(yQuaternion);
+
+    updatedQuaternion.normalize();
+
+    player.body.body?.setRotation(updatedQuaternion, true);
 
     this.initLookAt({ player, offset: xValue });
   }
@@ -39,7 +55,7 @@ export default class PlayerCamera {
   initLookAt({ player, offset = 0 }: { offset?: number; player: Player }) {
     const lookAt = getLookAtPosition(
       player.getFrontDirection(),
-      player.model.position.clone(),
+      player.body.mesh.position.clone(),
       this.lookAt?.y || 0,
       offset,
     );
@@ -57,7 +73,9 @@ export default class PlayerCamera {
     const camera = this.game.getCamera();
 
     let alpha = getAngleFromAbsoluteForward(player.getFrontDirection());
-    const isLeft = player.getFrontDirection().dot(ABSOLUTE_RIGHT_VECTOR) < 0;
+
+    const isLeft =
+      player.getFrontDirection().dot(ABSOLUTE_RIGHT_VECTOR.clone()) < 0;
 
     alpha = isLeft ? Math.PI * 2 - alpha : alpha;
 
@@ -65,7 +83,7 @@ export default class PlayerCamera {
 
     const newPosition = calculateCameraNewPosition(
       finalAngle,
-      player.model.position,
+      player.body.body?.translation(),
     );
 
     camera.position.lerp(newPosition, 0.7);
