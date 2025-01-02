@@ -5,8 +5,6 @@ import { CENTER_POINT_VECTOR } from "./utils";
 import RenderedObject from "../RenderedObject";
 import PlayerCamera from "../PlayerCamera";
 import PlayerController from "../PlayerController";
-import { ABSOLUTE_UP_VECTOR } from "../PlayerCamera/utils";
-import { Rotation } from "@dimforge/rapier3d";
 
 export default class Player {
   game: Game;

@@ -7,11 +7,9 @@ import {
   CAMERA_INITAL_VALUES,
   getAngleFromAbsoluteForward,
   getLookAtPosition,
-  getPlayerMeshQuaternion,
   getPlayerPhysicsQuaternion,
 } from "./utils";
 import Player from "../Player";
-import { getQuaternionString, getVectorString } from "../utils/vector";
 
 export default class PlayerCamera {
   game: Game;
