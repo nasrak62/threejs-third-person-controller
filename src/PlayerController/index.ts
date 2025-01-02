@@ -1,9 +1,8 @@
 import Game from "../Game";
-import * as THREE from "three";
 import { rotateVector } from "./utils";
 import Player from "../Player";
 import { ABSOLUTE_UP_VECTOR } from "../PlayerCamera/utils";
-import { getVectorString } from "../utils/vector";
+import { rapierToThreeVector } from "../utils/vector";
 
 export default class PlayerController {
   game: Game;
@@ -24,8 +23,8 @@ export default class PlayerController {
     this.keyA = false;
     this.shift = false;
     this.space = false;
-    this.baseSpeed = 200;
-    this.baseJumpSpeed = 200;
+    this.baseSpeed = 20;
+    this.baseJumpSpeed = 10;
 
     window.addEventListener("keydown", this.handleKeyDown.bind(this));
     window.addEventListener("keyup", this.handleKeyUp.bind(this));
@@ -122,9 +121,8 @@ export default class PlayerController {
     const player = this.game.getPlayer();
 
     const movementValues = this.getMovementVectors(player);
-    let movementValue = new THREE.Vector3();
     const originalVelocity = player.body.body?.linvel();
-    let effectiveVelocity = originalVelocity || new THREE.Vector3();
+    let movementValue = rapierToThreeVector(originalVelocity);
 
     if (this.space) {
       movementValue = movementValue.add(movementValues.space);
@@ -146,11 +144,7 @@ export default class PlayerController {
       movementValue = movementValue.add(movementValues.keyD);
     }
 
-    if (movementValue.x || movementValue.y || movementValue.z) {
-      effectiveVelocity = movementValue;
-    }
-
-    player.body.body?.setLinvel(effectiveVelocity, true);
+    player.body.body?.setLinvel(movementValue, true);
 
     this.game.world.player.playerCamera.initLookAt({ player });
   }

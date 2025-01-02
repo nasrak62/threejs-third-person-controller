@@ -6,6 +6,8 @@ import { TRapier } from "../Rapier/types";
 import { World as PhysicsWorld } from "@dimforge/rapier3d";
 import RenderedObject from "../RenderedObject";
 
+export const FRICTION = 11;
+
 export const createPlayer = (
   RAPIER: TRapier | null,
   world: PhysicsWorld | null,
@@ -208,7 +210,7 @@ export const createFloor = (
       floorWidth * 0.5,
       1,
       floorWidth * 0.5,
-    ).setFriction(5);
+    ).setFriction(FRICTION);
 
     renderedObject.body = world.createRigidBody(
       RAPIER.RigidBodyDesc.fixed().setTranslation(0, -1, 0),

@@ -24,3 +24,11 @@ export const getQuaternionString = (
 
   return vectorString;
 };
+
+export const rapierToThreeVector = (vector?: Vector): THREE.Vector3 => {
+  if (!vector) {
+    return new THREE.Vector3();
+  }
+
+  return new THREE.Vector3(vector.x, vector.y, vector.z);
+};
