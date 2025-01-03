@@ -6,7 +6,6 @@ import {
   calculateCameraNewPosition,
   CAMERA_INITAL_VALUES,
   getAngleFromAbsoluteForward,
-  getHeightDiff,
   getLookAtPosition,
   getPlayerPhysicsQuaternion,
 } from "./utils";
