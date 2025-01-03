@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Sky } from "three/addons/objects/Sky.js";
 import Game from "../Game";
 import {
   createCube,
@@ -41,6 +42,7 @@ export default class World {
     this.RAPIER = this.game.RAPIER;
     this.physicsWorld = this.game.physicsWorld;
     const scene = this.game.scene;
+    this.initSky();
 
     this.player = new Player();
 
@@ -99,6 +101,26 @@ export default class World {
     this.lookAtObject = createCube(this.getTextFunction(), "look at", 0xaa4ac3);
 
     this.game.scene.add(this.lookAtObject);
+  }
+
+  initSky() {
+    const sky = new Sky();
+    sky.scale.setScalar(450000);
+    const uniforms = sky.material.uniforms;
+    uniforms["turbidity"].value = 1;
+    uniforms["rayleigh"].value = 3;
+    uniforms["mieCoefficient"].value = 0.005;
+    uniforms["mieDirectionalG"].value = 0.7;
+
+    const phi = THREE.MathUtils.degToRad(88);
+    const theta = THREE.MathUtils.degToRad(180);
+    const sun = new THREE.Vector3();
+
+    sun.setFromSphericalCoords(1, phi, theta);
+
+    uniforms["sunPosition"].value.copy(sun);
+
+    this.game.scene.add(sky);
   }
 
   getTextFunction() {

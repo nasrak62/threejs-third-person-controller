@@ -146,6 +146,6 @@ export default class PlayerController {
 
     player.body.body?.setLinvel(movementValue, true);
 
-    this.game.world.player.playerCamera.initLookAt({ player });
+    this.game.world.player.playerCamera.initLookAtYPosition({ player });
   }
 }

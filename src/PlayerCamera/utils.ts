@@ -8,7 +8,8 @@ export const ABSOLUTE_RIGHT_VECTOR = new THREE.Vector3(1, 0, 0);
 export const ABSOLUTE_UP_VECTOR = new THREE.Vector3(0, 1, 0);
 const CAMERA_HEIGHT_OFFSET = 5;
 const LOOK_AT_MIN = -15;
-const LOOK_AT_MAX = 60;
+const LOOK_AT_MAX_LAND = 60;
+const LOOK_AT_MAX_JUMP = 15;
 export const CAMERA_INITAL_VALUES = {
   angle: Math.PI * 0.25,
   length: BASE_DISTANCE,
@@ -40,19 +41,27 @@ export const calculateCameraNewPosition = (
   return newPosition;
 };
 
+export const getHeightDiff = (firstHeight: number, secondHeight: number) => {
+  const max = Math.max(firstHeight, secondHeight);
+  const min = Math.min(firstHeight, secondHeight);
+
+  return (max - min) * Math.sign(min);
+};
+
 export const getLookAtPosition = (
   playerDirection: THREE.Vector3,
   playerPosition: THREE.Vector3,
-  oldYPosition: number,
   offset: number,
+  oldYPosition: number,
 ) => {
   const forwardOffset = playerDirection.multiplyScalar(BASE_DISTANCE);
-
   const lookAtPosition = playerPosition.add(forwardOffset);
+  const maxValue =
+    Math.round(playerPosition.y) !== 0 ? LOOK_AT_MAX_JUMP : LOOK_AT_MAX_LAND;
 
   lookAtPosition.y = Math.min(
-    Math.max(oldYPosition - offset, LOOK_AT_MIN),
-    LOOK_AT_MAX,
+    Math.max(oldYPosition - offset, playerPosition.y + LOOK_AT_MIN),
+    maxValue + playerPosition.y,
   );
 
   return lookAtPosition;

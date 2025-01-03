@@ -6,20 +6,24 @@ import {
   calculateCameraNewPosition,
   CAMERA_INITAL_VALUES,
   getAngleFromAbsoluteForward,
+  getHeightDiff,
   getLookAtPosition,
   getPlayerPhysicsQuaternion,
 } from "./utils";
 import Player from "../Player";
+import { rapierToThreeVector } from "../utils/vector";
 
 export default class PlayerCamera {
   game: Game;
   movementFactorHorizontal: number;
   lookAt: THREE.Vector3 | null;
+  heightDiff: number;
 
   constructor() {
     this.game = new Game();
     this.movementFactorHorizontal = 0.1 * 0.7;
     this.lookAt = null;
+    this.heightDiff = 0;
 
     window.addEventListener("mousemove", this.handleMouseMove.bind(this));
   }
@@ -47,15 +51,26 @@ export default class PlayerCamera {
 
     player.body.body?.setRotation(updatedQuaternion, true);
 
-    this.initLookAt({ player, offset: xValue });
+    this.initLookAtYPosition({ player, offset: xValue });
   }
 
-  initLookAt({ player, offset = 0 }: { offset?: number; player: Player }) {
+  initLookAtYPosition({
+    player,
+    offset = 0,
+  }: {
+    offset?: number;
+    player: Player;
+  }) {
+    const oldYPosition = this.lookAt?.y || 0;
+    const currentPosition = rapierToThreeVector(
+      player.body.body?.translation(),
+    );
+
     const lookAt = getLookAtPosition(
       player.getFrontDirection(),
-      player.body.mesh.position.clone(),
-      this.lookAt?.y || 0,
+      currentPosition,
       offset,
+      oldYPosition,
     );
 
     this.lookAt = lookAt;
@@ -63,11 +78,6 @@ export default class PlayerCamera {
 
   animate() {
     const player = this.game.getPlayer();
-
-    if (player && !this.lookAt) {
-      this.initLookAt({ player });
-    }
-
     const camera = this.game.getCamera();
 
     let alpha = getAngleFromAbsoluteForward(player.getFrontDirection());
