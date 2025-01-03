@@ -6,4 +6,9 @@ import wasm from "vite-plugin-wasm";
 export default defineConfig({
   plugins: [wasm(), react()],
   base: "/",
+  build: {
+    rollupOptions: {
+      treeshake: false,
+    },
+  },
 });
