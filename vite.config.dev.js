@@ -6,6 +6,11 @@ import wasm from "vite-plugin-wasm";
 export default defineConfig({
   plugins: [wasm(), react()],
   base: "/",
+  esbuild: {
+    supported: {
+      "top-level-await": true, //browsers can handle top-level-await features
+    },
+  },
   build: {
     rollupOptions: {
       treeshake: false,
